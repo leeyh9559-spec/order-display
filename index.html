@@ -103,6 +103,52 @@
     }
 
     // 3. 语音播报
+    // --- 修改后的语音逻辑 ---
+
+let isVoiceReady = false;
+
+// 1. 核心点击激活函数
+document.body.onclick = () => {
+    if (!isVoiceReady) {
+        // 在点击的一瞬间，播报一个几乎听不到的短促声音，用来“骗过”浏览器的限制
+        const welcome = new SpeechSynthesisUtterance("Voice system online");
+        welcome.volume = 0.1; // 音量调低一点，不吵人
+        welcome.rate = 1.0;
+        welcome.lang = 'en-US';
+        
+        window.speechSynthesis.speak(welcome);
+        
+        isVoiceReady = true;
+        
+        // 视觉反馈：改变提示字样
+        const tip = document.querySelector('#tv-view div:last-child');
+        if(tip) tip.innerText = "● 语音已激活 (Voice Active)";
+        console.log("语音引擎已激活！");
+    }
+};
+
+// 2. 改进后的播报函数
+function speak(text) {
+    if (!isVoiceReady) {
+        console.warn("语音尚未激活，请先点击一下屏幕任意位置！");
+        return;
+    }
+
+    // 先清除所有排队的声音，防止旧号码一直念不完
+    window.speechSynthesis.cancel();
+    
+    // 格式化号码，让念出来更自然，例如 A101 念成 "Order A, 1, 0, 1"
+    const charArray = text.split('');
+    const formattedText = "Order " + charArray.join(' ') + " is ready";
+    
+    const msg = new SpeechSynthesisUtterance(formattedText);
+    msg.lang = 'en-US';
+    msg.rate = 0.8; // 稍微慢一点，更清晰
+    msg.pitch = 1.0;
+    msg.volume = 1.0;
+
+    window.speechSynthesis.speak(msg);
+}
     function speak(text) {
         window.speechSynthesis.cancel();
         const msg = new SpeechSynthesisUtterance("Order " + text.split('').join(' ') + " is ready");
