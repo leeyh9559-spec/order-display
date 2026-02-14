@@ -109,5 +109,37 @@
         window.speechSynthesis.speak(msg);
     }
 </script>
+    <script>
+    // ... 之前的初始化代码保持不变 ...
+
+    // 1. 解锁声音的函数
+    function unlockAudio() {
+        if (audioReady) return; // 避免重复触发
+        
+        try {
+            window.speechSynthesis.cancel();
+            const welcome = new SpeechSynthesisUtterance("System Active");
+            welcome.lang = 'en-US';
+            window.speechSynthesis.speak(welcome);
+            
+            audioReady = true;
+            document.getElementById('audio-unlock-overlay').style.display = 'none';
+            console.log("Audio Unlocked via interaction");
+        } catch (e) {
+            console.error("Speech init error:", e);
+        }
+    }
+
+    // 2. 核心：监听遥控器的“确定”键 (Enter 键)
+    window.addEventListener('keydown', function(e) {
+        // 13 是回车键，大部分电视遥控器的“确定”键也是这个代码
+        if (e.keyCode === 13 || e.key === 'Enter') {
+            unlockAudio();
+        }
+    });
+
+    // 之前的点击逻辑依然保留，方便手机/电脑测试
+    document.body.onclick = unlockAudio;
+</script>
 </body>
 </html>
