@@ -6,70 +6,103 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root { --green: #004529; --yellow: #F7D08A; }
-        body { background: var(--green); color: var(--yellow); font-family: sans-serif; margin: 0; text-align: center; }
+        body { 
+            background: var(--green); 
+            color: var(--yellow); 
+            font-family: 'PingFang SC', sans-serif; 
+            margin: 0; 
+            overflow: hidden;
+        }
         
         /* 电视模式样式 */
-        #tv-view { display: none; height: 100vh; flex-direction: column; }
-        .number-display { font-size: 15vw; font-weight: 900; margin-top: 50px; }
+        #tv-view { display: none; height: 100vh; flex-direction: column; align-items: center; justify-content: center; }
+        .number-display { font-size: 25vw; font-weight: 900; line-height: 1; margin: 20px 0; text-shadow: 5px 5px 0px rgba(0,0,0,0.2); }
         
         /* 柜台模式样式 */
         #counter-view { display: none; padding: 50px; }
-        input { font-size: 2rem; padding: 10px; width: 200px; border: 2px solid var(--yellow); background: none; color: white; }
-        button { font-size: 2rem; padding: 10px 30px; background: var(--yellow); color: var(--green); border: none; cursor: pointer; }
+        input { 
+            font-size: 2rem; padding: 15px; width: 250px; 
+            border: 3px solid var(--yellow); background: rgba(255,255,255,0.1); color: white; border-radius: 10px;
+        }
+        button { 
+            font-size: 2rem; padding: 15px 40px; background: var(--yellow); 
+            color: var(--green); border: none; cursor: pointer; font-weight: bold; border-radius: 10px; margin-left: 10px;
+        }
+        .status-dot { width: 15px; height: 15px; background: #44ff44; border-radius: 50%; display: inline-block; margin-right: 5px; }
     </style>
 </head>
 <body>
 
     <div id="tv-view">
-        <h1 style="border-bottom: 4px double var(--yellow); padding: 20px;">MIDNIGHT WORKSHOP 深夜工坊</h1>
-        <div style="font-size: 3rem; margin-top: 40px;">NOW SERVING / 请取餐</div>
+        <h1 style="border-bottom: 5px double var(--yellow); padding-bottom: 10px; font-size: 3.5rem;">MIDNIGHT WORKSHOP 深夜工坊</h1>
+        <div style="font-size: 4rem; letter-spacing: 10px; margin-top: 30px;">NOW SERVING / 请取餐</div>
         <div id="current-number" class="number-display">---</div>
-        <div style="position:fixed; bottom:10px; width:100%; color:rgba(247,208,138,0.3)">点击屏幕开启语音播报</div>
+        <div style="position:fixed; bottom:20px; color:rgba(247,208,138,0.4); font-size: 1.2rem;">
+            ● 实时连接已就绪 | 点击屏幕开启语音播报
+        </div>
     </div>
 
     <div id="counter-view">
-        <h1>柜台叫号端</h1>
-        <input type="text" id="orderInput" placeholder="输入单号">
-        <button onclick="sendOrder()">叫号</button>
+        <h1 style="font-size: 3rem;">柜台叫号控制台</h1>
+        <p>输入单号并按回车或点击“叫号”</p>
+        <div style="margin-top: 30px;">
+            <input type="text" id="orderInput" placeholder="例如: A101" autofocus>
+            <button onclick="sendOrder()">叫号</button>
+        </div>
+        <div id="log" style="margin-top: 50px; color: rgba(255,255,255,0.5);"></div>
     </div>
 
 <script>
-    const SUPABASE_URL = 'https://enswbpmkycasjnqfqwli.supabase.co';
-    const SUPABASE_KEY = 'sb_publishable_5Do4Ho_qHom0i85Eata37w_ikebjM57';
-    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    // 修正：将变量名改为 client 以免和库名冲突
+    const SUPABASE_URL = 'https://enswbpmkycasjnqfqwli.supabase.co'; 
+    const SUPABASE_KEY = 'sb_publishable_5Do4Ho_qHom0i85Eata37w_ikebjM57'; 
+    const client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    // 获取 URL 参数确定显示模式
     const urlParams = new URLSearchParams(window.location.search);
     const mode = urlParams.get('view');
 
+    // 路由控制
     if (mode === 'tv') {
         document.getElementById('tv-view').style.display = 'flex';
         initRealtime();
     } else {
+        // 默认显示柜台端
         document.getElementById('counter-view').style.display = 'block';
     }
 
-    // 1. 电视端逻辑：监听数据库
+    // 1. 电视端逻辑：监听插入操作
     function initRealtime() {
-        supabase
-          .channel('any')
+        console.log("正在尝试连接实时数据库...");
+        client
+          .channel('public:orders')
           .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders' }, payload => {
               const num = payload.new.order_number;
               document.getElementById('current-number').innerText = num;
               speak(num);
           })
-          .subscribe();
+          .subscribe((status) => {
+              console.log("实时连接状态:", status);
+          });
     }
 
     // 2. 柜台端逻辑：插入数据
     async function sendOrder() {
         const input = document.getElementById('orderInput');
-        if (!input.value) return;
-        await supabase.from('orders').insert([{ order_number: input.value.toUpperCase() }]);
-        input.value = '';
+        const num = input.value.trim().toUpperCase();
+        if (!num) return;
+
+        const { error } = await client.from('orders').insert([{ order_number: num }]);
+        
+        if (error) {
+            alert("发送失败: " + error.message);
+        } else {
+            document.getElementById('log').innerText = "已叫号: " + num;
+            input.value = '';
+            input.focus();
+        }
     }
 
-    // 3. 英文语音播报
+    // 3. 语音播报
     function speak(text) {
         window.speechSynthesis.cancel();
         const msg = new SpeechSynthesisUtterance("Order " + text.split('').join(' ') + " is ready");
@@ -78,8 +111,12 @@
         window.speechSynthesis.speak(msg);
     }
 
-    // 点击屏幕解除浏览器静音限制
-    document.body.onclick = () => { console.log("Audio Active"); };
+    // 监听回车键
+    document.getElementById('orderInput').addEventListener("keypress", (e) => {
+        if (e.key === "Enter") sendOrder();
+    });
+
+    document.body.onclick = () => { console.log("音频已激活"); };
 </script>
 </body>
 </html>
