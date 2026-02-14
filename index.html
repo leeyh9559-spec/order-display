@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Midnight Workshop - Pickup System</title>
+    <style>
+        :root {
+            --dark-green: #004529;
+            --creamy-yellow: #F7D08A;
+            --white: #ffffff;
+        }
+
+        body {
+            background-color: var(--dark-green);
+            color: var(--creamy-yellow);
+            font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            margin: 0;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        header {
+            text-align: center;
+            padding: 20px;
+            border-bottom: 5px double var(--creamy-yellow);
+        }
+
+        h1 {
+            font-size: 3rem;
+            margin: 0;
+            letter-spacing: 5px;
+        }
+
+        .container {
+            display: flex;
+            flex: 1;
+            padding: 20px;
+            gap: 20px;
+        }
+
+        .column {
+            flex: 1;
+            border: 3px solid var(--creamy-yellow);
+            border-radius: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .column-title {
+            background-color: var(--creamy-yellow);
+            color: var(--dark-green);
+            width: 100%;
+            text-align: center;
+            font-size: 2.5rem;
+            font-weight: bold;
+            padding: 10px 0;
+            border-radius: 10px 10px 0 0;
+        }
+
+        .number-list {
+            font-size: 6rem;
+            font-weight: 900;
+            list-style: none;
+            padding: 0;
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        /* 控制面板（可以隐藏，只在柜台操作时显示） */
+        #control-panel {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+        }
+
+        input {
+            font-size: 1.5rem;
+            width: 100px;
+            padding: 5px;
+        }
+
+        button {
+            background: var(--creamy-yellow);
+            color: var(--dark-green);
+            border: none;
+            padding: 10px 20px;
+            font-size: 1.5rem;
+            cursor: pointer;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>深夜工坊 MIDNIGHT WORKSHOP</h1>
+</header>
+
+<div class="container">
+    <div class="column">
+        <div class="column-title">NOW SERVING (请取餐)</div>
+        <ul id="serving-list" class="number-list">
+            </ul>
+    </div>
+</div>
+
+<div id="control-panel">
+    <input type="text" id="orderInput" placeholder="A101">
+    <button onclick="addOrder()">CALL (叫号)</button>
+    <button onclick="clearOrders()" style="background:#ff4444; color:white;">CLEAR</button>
+</div>
+
+<script>
+    const servingList = document.getElementById('serving-list');
+    const orderInput = document.getElementById('orderInput');
+
+    // 语音播报函数
+    function speak(text) {
+        // 先停止之前的语音
+        window.speechSynthesis.cancel();
+        
+        const utterance = new SpeechSynthesisUtterance();
+        // 格式化：让 A101 变成 "Order A, 1, 0, 1" 念得更清楚
+        const formattedText = "Order " + text.split('').join(' ');
+        
+        utterance.text = formattedText;
+        utterance.lang = 'en-US';
+        utterance.rate = 0.8; // 语速稍慢一点，老人家听得清
+        utterance.pitch = 1;
+        
+        window.speechSynthesis.speak(utterance);
+    }
+
+    function addOrder() {
+        const num = orderInput.value.toUpperCase();
+        if (!num) return;
+
+        // 更新列表（只显示最新 3 个）
+        const li = document.createElement('li');
+        li.textContent = num;
+        servingList.prepend(li);
+        
+        if (servingList.children.length > 3) {
+            servingList.removeChild(servingList.lastChild);
+        }
+
+        // 播报语音
+        speak(num);
+        
+        orderInput.value = '';
+        orderInput.focus();
+    }
+
+    function clearOrders() {
+        servingList.innerHTML = '';
+    }
+
+    // 监听回车键
+    orderInput.addEventListener("keypress", function(event) {
+        if (event.key === "Enter") {
+            addOrder();
+        }
+    });
+
+    // 解决浏览器自动播放限制
+    document.body.onclick = () => {
+        console.log("Audio Enabled");
+    };
+</script>
+
+</body>
+</html>
