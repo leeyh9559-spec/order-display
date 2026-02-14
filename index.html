@@ -6,232 +6,108 @@
     <title>深夜工坊 - 取餐系统</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        :root { 
-            --green: #004529; /* 深夜工坊主题绿 */
-            --yellow: #F7D08A; /* 复古奶黄色 */
+        :root { --green: #004529; --yellow: #F7D08A; }
+        body { background: var(--green); color: var(--yellow); font-family: sans-serif; margin: 0; overflow: hidden; }
+
+        /* 强制全屏遮罩层 - 解决点击没反应的问题 */
+        #audio-unlock-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 69, 41, 0.95);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            z-index: 9999; cursor: pointer; text-align: center;
         }
+        .start-btn {
+            font-size: 3rem; padding: 20px 60px; background: var(--yellow);
+            color: var(--green); border-radius: 50px; font-weight: bold; margin-bottom: 20px;
+        }
+
+        /* 电视模式样式 */
+        #tv-view { display: none; height: 100vh; flex-direction: column; align-items: center; justify-content: center; }
+        .number-display { font-size: 30vw; font-weight: 900; line-height: 1; margin: 20px 0; }
         
-        body { 
-            background: var(--green); 
-            color: var(--yellow); 
-            font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif; 
-            margin: 0; 
-            padding: 0;
-            overflow: hidden;
-            -webkit-touch-callout: none;
-            -webkit-user-select: none;
-        }
-
-        /* 电视模式样式：极致大字体 */
-        #tv-view { 
-            display: none; 
-            height: 100vh; 
-            flex-direction: column; 
-            align-items: center; 
-            justify-content: center; 
-        }
-        
-        .header-title {
-            border-bottom: 5px double var(--yellow); 
-            padding-bottom: 10px; 
-            font-size: 4vw;
-            letter-spacing: 5px;
-            margin: 0;
-        }
-
-        .now-serving {
-            font-size: 5vw; 
-            letter-spacing: 10px; 
-            margin-top: 40px;
-            opacity: 0.9;
-        }
-
-        .number-display { 
-            font-size: 30vw; 
-            font-weight: 900; 
-            line-height: 1; 
-            margin: 20px 0; 
-            text-shadow: 10px 10px 0px rgba(0,0,0,0.2); 
-        }
-
-        .status-bar {
-            position: fixed; 
-            bottom: 30px; 
-            color: rgba(247,208,138,0.4); 
-            font-size: 1.5vw;
-            background: rgba(0,0,0,0.1);
-            padding: 10px 30px;
-            border-radius: 50px;
-        }
-
         /* 柜台模式样式 */
-        #counter-view { 
-            display: none; 
-            padding: 40px 20px; 
-        }
-        
-        .counter-card {
-            background: rgba(255,255,255,0.05);
-            padding: 40px;
-            border-radius: 20px;
-            border: 1px solid var(--yellow);
-            max-width: 500px;
-            margin: 0 auto;
-        }
-
-        input { 
-            font-size: 2.5rem; 
-            padding: 15px; 
-            width: 80%; 
-            border: 3px solid var(--yellow); 
-            background: none; 
-            color: white; 
-            border-radius: 12px;
-            text-align: center;
-            margin-bottom: 20px;
-        }
-
-        button { 
-            font-size: 2rem; 
-            padding: 15px 60px; 
-            background: var(--yellow); 
-            color: var(--green); 
-            border: none; 
-            cursor: pointer; 
-            font-weight: bold; 
-            border-radius: 12px;
-            transition: transform 0.1s;
-        }
-        
-        button:active { transform: scale(0.95); }
-
-        #log { margin-top: 30px; font-size: 1.2rem; color: rgba(255,255,255,0.6); }
+        #counter-view { display: none; padding: 40px; }
+        input { font-size: 2.5rem; padding: 15px; width: 80%; border: 3px solid var(--yellow); background: none; color: white; margin-bottom: 20px; text-align: center; }
+        button { font-size: 2rem; padding: 15px 60px; background: var(--yellow); color: var(--green); border: none; font-weight: bold; border-radius: 10px; }
     </style>
 </head>
 <body>
 
+    <div id="audio-unlock-overlay" onclick="unlockAudio()">
+        <div class="start-btn">点击开启系统</div>
+        <p style="font-size: 1.5rem;">CLICK TO START AUDIO</p>
+        <p style="opacity: 0.6;">(深夜工坊 取餐系统已就绪)</p>
+    </div>
+
     <div id="tv-view">
-        <h1 class="header-title">MIDNIGHT WORKSHOP 深夜工坊</h1>
-        <div class="now-serving">NOW SERVING / 请取餐</div>
+        <h1 style="border-bottom: 5px double var(--yellow); font-size: 4vw; margin:0;">MIDNIGHT WORKSHOP 深夜工坊</h1>
+        <div style="font-size: 4vw; margin-top: 30px;">NOW SERVING / 请取餐</div>
         <div id="current-number" class="number-display">---</div>
-        <div id="voice-tip" class="status-bar" onclick="enableAudio()">
-            ⚠️ 画面已就绪，请点击屏幕开启声音播报
-        </div>
     </div>
 
     <div id="counter-view">
-        <div class="counter-card">
-            <h1 style="font-size: 2.5rem; margin-top: 0;">柜台叫号端</h1>
-            <p style="opacity: 0.8;">深夜工坊专属控制台</p>
-            <input type="text" id="orderInput" placeholder="输入单号" autofocus>
-            <br>
-            <button onclick="sendOrder()">立即叫号</button>
-            <div id="log">等待操作...</div>
-        </div>
+        <h1>柜台叫号端</h1>
+        <input type="text" id="orderInput" placeholder="输入单号" autofocus>
+        <br>
+        <button onclick="sendOrder()">叫号</button>
     </div>
 
 <script>
-    // 配置信息
     const SUPABASE_URL = 'https://enswbpmkycasjnqfqwli.supabase.co'; 
     const SUPABASE_KEY = 'sb_publishable_5Do4Ho_qHom0i85Eata37w_ikebjM57'; 
     const client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     const urlParams = new URLSearchParams(window.location.search);
     const mode = urlParams.get('view');
-    let isAudioEnabled = false;
+    let audioReady = false;
 
-    // --- 初始化路由 ---
+    // 初始化显示
     if (mode === 'tv') {
         document.getElementById('tv-view').style.display = 'flex';
         initRealtime();
     } else {
+        document.getElementById('audio-unlock-overlay').style.display = 'none';
         document.getElementById('counter-view').style.display = 'block';
     }
 
-    // --- 核心逻辑 1：电视端监听 ---
+    // 关键：解锁声音的函数
+    function unlockAudio() {
+        // 1. 立即播报一个声音来测试引擎
+        const welcome = new SpeechSynthesisUtterance("System active");
+        welcome.lang = 'en-US';
+        window.speechSynthesis.speak(welcome);
+        
+        // 2. 更新状态并隐藏遮罩
+        audioReady = true;
+        document.getElementById('audio-unlock-overlay').style.display = 'none';
+        console.log("Audio Unlocked");
+    }
+
     function initRealtime() {
-        console.log("正在建立实时监听...");
-        client
-          .channel('public:orders')
+        client.channel('public:orders')
           .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders' }, payload => {
               const num = payload.new.order_number;
               document.getElementById('current-number').innerText = num;
-              speak(num);
+              if (audioReady) speak(num);
           })
           .subscribe();
     }
 
-    // --- 核心逻辑 2：柜台端发送 ---
     async function sendOrder() {
         const input = document.getElementById('orderInput');
         const num = input.value.trim().toUpperCase();
         if (!num) return;
-
-        const logDiv = document.getElementById('log');
-        logDiv.innerText = "正在发送...";
-
-        const { error } = await client.from('orders').insert([{ order_number: num }]);
-        
-        if (error) {
-            logDiv.innerText = "❌ 发送失败: " + error.message;
-            alert("错误: " + error.message);
-        } else {
-            logDiv.innerText = "✅ 已叫号: " + num;
-            input.value = '';
-            input.focus();
-            // 在手机端也尝试播报，方便测试
-            if(isAudioEnabled) speak(num); 
-        }
-    }
-
-    // --- 核心逻辑 3：声音播报与激活 ---
-    function enableAudio() {
-        if (!isAudioEnabled) {
-            // 播放一个极短的静音或欢迎语来解锁浏览器声音限制
-            const welcome = new SpeechSynthesisUtterance("Audio active");
-            welcome.lang = 'en-US';
-            welcome.volume = 0.5;
-            window.speechSynthesis.speak(welcome);
-            
-            isAudioEnabled = true;
-            const tip = document.getElementById('voice-tip');
-            if(tip) {
-                tip.innerText = "● 实时连接中 | 声音已激活";
-                tip.style.color = "#44ff44";
-            }
-            console.log("声音引擎已授权");
-        }
+        await client.from('orders').insert([{ order_number: num }]);
+        input.value = '';
     }
 
     function speak(text) {
-        if (!isAudioEnabled) {
-            console.warn("声音未激活，请点击电视屏幕！");
-            return;
-        }
-
-        window.speechSynthesis.cancel(); // 停止当前所有播放
-        
-        // A101 -> Order A, 1, 0, 1
-        const charArray = text.split('');
-        const formattedText = "Order " + charArray.join(' ') + " is ready";
-        
-        const msg = new SpeechSynthesisUtterance(formattedText);
-        msg.lang = 'en-US'; // 设置为英文播报
-        msg.rate = 0.8;    // 语速稍慢，更清晰
-        msg.pitch = 1.0;
-        msg.volume = 1.0;
-
+        window.speechSynthesis.cancel();
+        const msg = new SpeechSynthesisUtterance("Order " + text.split('').join(' ') + " is ready");
+        msg.lang = 'en-US';
+        msg.rate = 0.8;
         window.speechSynthesis.speak(msg);
     }
-
-    // --- 交互辅助 ---
-    // 点击任意位置尝试开启声音
-    document.body.onclick = () => enableAudio();
-
-    // 监听回车键发送
-    document.getElementById('orderInput')?.addEventListener("keypress", (e) => {
-        if (e.key === "Enter") sendOrder();
-    });
 </script>
 </body>
 </html>
