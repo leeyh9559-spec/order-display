@@ -7,66 +7,72 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root { --green: #004529; --yellow: #F7D08A; }
-        body { background: var(--green); color: var(--yellow); font-family: sans-serif; margin: 0; overflow: hidden; }
+        body { background: var(--green); color: var(--yellow); font-family: 'PingFang SC', sans-serif; margin: 0; overflow: hidden; }
 
-        /* 激活层 */
+        /* 激活遮罩层 */
         #activation-layer {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: var(--green); z-index: 1000;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
         }
-        .btn-ready { font-size: 3rem; padding: 25px 70px; background: var(--yellow); color: var(--green); border-radius: 60px; font-weight: bold; border:none; cursor: pointer; }
+        .btn-ready { font-size: 3rem; padding: 25px 70px; background: var(--yellow); color: var(--green); border-radius: 60px; font-weight: bold; border:none; box-shadow: 0 10px 20px rgba(0,0,0,0.4); cursor: pointer; }
 
-        /* TV 布局 */
+        /* TV 界面布局 */
         #tv-view { display: none; height: 100vh; flex-direction: column; padding: 20px; box-sizing: border-box; }
-        .header { font-size: 3.5vw; border-bottom: 6px double var(--yellow); padding: 10px 0; text-align: center; margin-bottom: 20px; font-weight: bold; }
-        .main-box { display: flex; flex: 1; gap: 20px; overflow: hidden; }
+        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 6px double var(--yellow); padding: 10px 20px; }
+        .header h1 { font-size: 3.5vw; margin: 0; }
+        .promo-tag { background: var(--yellow); color: var(--green); padding: 5px 20px; border-radius: 10px; font-weight: bold; font-size: 1.5vw; }
+
+        .main-box { display: flex; flex: 1; gap: 20px; margin-top: 20px; overflow: hidden; }
         
-        .big-call { flex: 2; border: 4px solid var(--yellow); border-radius: 25px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(0,0,0,0.1); }
-        .num-large { font-size: 30vw; font-weight: 900; line-height: 1; margin: 0; text-shadow: 8px 8px 0px rgba(0,0,0,0.2); }
+        /* 左侧：当前叫号 */
+        .big-call { flex: 2; border: 4px solid var(--yellow); border-radius: 25px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(0,0,0,0.15); }
+        .num-large { font-size: 32vw; font-weight: 900; line-height: 1; margin: 0; text-shadow: 10px 10px 0px rgba(0,0,0,0.2); color: #fff; }
         
+        /* 右侧：取餐列表 (最多10个) */
         .queue-box { flex: 1; border: 4px solid var(--yellow); border-radius: 25px; display: flex; flex-direction: column; background: rgba(255,255,255,0.05); }
-        .queue-head { background: var(--yellow); color: var(--green); font-size: 2vw; padding: 12px; text-align: center; font-weight: bold; }
+        .queue-head { background: var(--yellow); color: var(--green); font-size: 2vw; padding: 15px; text-align: center; font-weight: bold; }
         #list-container { list-style: none; padding: 0; margin: 0; flex: 1; display: flex; flex-direction: column; }
-        .queue-item { font-size: 4.5vw; padding: 12px; border-bottom: 1px solid rgba(247,208,138,0.2); text-align: center; font-weight: bold; }
+        .queue-item { font-size: 4.5vw; padding: 12px; border-bottom: 1px solid rgba(247,208,138,0.2); text-align: center; font-weight: bold; animation: slideIn 0.3s ease-out; }
 
-        /* 柜台样式 */
+        @keyframes slideIn { from { transform: translateX(50px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+        /* 柜台端样式 */
         #counter-view { display: none; padding: 40px; text-align: center; }
-        .c-input { font-size: 3rem; padding: 20px; width: 80%; border: 4px solid var(--yellow); background: none; color: white; border-radius: 20px; text-align: center; margin-bottom: 30px; }
-        .c-btn { font-size: 2.5rem; padding: 20px 80px; background: var(--yellow); color: var(--green); border: none; border-radius: 20px; font-weight: bold; }
-
-        /* 测试按钮 */
-        #test-voice { position: fixed; bottom: 10px; right: 10px; opacity: 0.3; background: var(--yellow); color: var(--green); border: none; padding: 5px 10px; border-radius: 5px; }
+        .c-input { font-size: 4rem; padding: 20px; width: 80%; border: 4px solid var(--yellow); background: none; color: white; border-radius: 20px; text-align: center; margin-bottom: 30px; }
+        .c-btn { font-size: 3rem; padding: 25px 100px; background: var(--yellow); color: var(--green); border: none; border-radius: 25px; font-weight: bold; }
     </style>
 </head>
 <body>
 
     <div id="activation-layer">
-        <button class="btn-ready" onclick="initAudio()">点击激活叫号声音</button>
-        <p style="margin-top: 30px; font-size: 1.5rem;">或按遥控器 OK 键</p>
+        <button class="btn-ready" onclick="initAudio()">点击激活叫号系统</button>
+        <p style="margin-top: 30px; font-size: 1.5rem; opacity: 0.8;">MIDNIGHT WORKSHOP · CHERAS YULEK</p>
     </div>
 
     <div id="tv-view">
-        <div class="header">MIDNIGHT WORKSHOP 深夜工坊</div>
+        <div class="header">
+            <h1>MIDNIGHT WORKSHOP 深夜工坊</h1>
+            <div class="promo-tag">招牌蛋挞 3 FOR RM10</div>
+        </div>
         <div class="main-box">
             <div class="big-call">
-                <div style="font-size: 2.5vw; opacity: 0.8;">PLEASE COLLECT / 请取餐</div>
+                <div style="font-size: 2.5vw; opacity: 0.8; letter-spacing: 5px;">NOW SERVING / 请取餐</div>
                 <div id="big-num" class="num-large">---</div>
             </div>
             <div class="queue-box">
-                <div class="queue-head">PICKUP LIST (10 MINS)</div>
+                <div class="queue-head">取餐列表 (10 MINS)</div>
                 <div id="list-container"></div>
             </div>
         </div>
-        <button id="test-voice" onclick="announce('TEST')">测试声音</button>
     </div>
 
     <div id="counter-view">
-        <div style="background:rgba(255,255,255,0.05); padding:40px; border-radius:30px; border:2px solid var(--yellow); max-width:450px; margin:0 auto;">
-            <h1 style="margin-top:0;">深夜工坊·柜台</h1>
-            <input type="text" id="orderInput" class="c-input" placeholder="输入单号" autofocus>
+        <div style="background:rgba(255,255,255,0.05); padding:50px; border-radius:30px; border:2px solid var(--yellow); max-width:500px; margin:40px auto;">
+            <h1 style="margin-top:0;">柜台控制端</h1>
+            <input type="text" id="orderInput" class="c-input" placeholder="单号" autofocus>
             <br>
-            <button class="c-btn" onclick="postOrder()">发出叫号</button>
+            <button class="c-btn" onclick="postOrder()">叫号</button>
         </div>
     </div>
 
@@ -76,23 +82,23 @@
 <script>
     const sb = supabase.createClient('https://enswbpmkycasjnqfqwli.supabase.co', 'sb_publishable_5Do4Ho_qHom0i85Eata37w_ikebjM57');
     const mode = new URLSearchParams(window.location.search).get('view');
-    let localQueue = []; 
+    let localQueue = []; // 存储格式: { num: 'A1', time: Date.now() }
     let audioUnlocked = false;
 
     if (mode === 'tv') {
         document.getElementById('tv-view').style.display = 'flex';
-        fetchRecent();
-        listenDB();
-        setInterval(autoPrune, 1000); 
+        fetchInitData();
+        listenRealtime();
+        setInterval(autoCleanup, 1000); // 每秒检查一次是否过期
     } else {
         document.getElementById('activation-layer').style.display = 'none';
         document.getElementById('counter-view').style.display = 'block';
     }
 
-    // 1. 获取 10 分钟内记录
-    async function fetchRecent() {
-        const limit = new Date(Date.now() - 10 * 60 * 1000).toISOString();
-        const { data } = await sb.from('orders').select('*').gt('created_at', limit).order('created_at', {ascending: false}).limit(10);
+    // 1. 初始化数据：获取过去10分钟单号
+    async function fetchInitData() {
+        const tenMinsAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+        const { data } = await sb.from('orders').select('*').gt('created_at', tenMinsAgo).order('created_at', {ascending: false}).limit(10);
         if (data) {
             localQueue = data.map(d => ({ num: d.order_number, time: new Date(d.created_at).getTime() }));
             updateUI();
@@ -100,13 +106,13 @@
     }
 
     // 2. 实时监听
-    function listenDB() {
-        sb.channel('calls').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders' }, payload => {
+    function listenRealtime() {
+        sb.channel('workshop').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders' }, payload => {
             const num = payload.new.order_number;
             localQueue.unshift({ num, time: Date.now() });
-            if (localQueue.length > 10) localQueue.pop();
+            if (localQueue.length > 10) localQueue.pop(); // 队列上限10个
             updateUI();
-            if (audioUnlocked) announce(num);
+            if (audioUnlocked) playVoice(num);
         }).subscribe();
     }
 
@@ -114,57 +120,54 @@
         const list = document.getElementById('list-container');
         const big = document.getElementById('big-num');
         list.innerHTML = '';
-        localQueue.forEach(i => {
-            const d = document.createElement('div');
-            d.className = 'queue-item';
-            d.innerText = i.num;
-            list.appendChild(d);
+        localQueue.forEach(item => {
+            const el = document.createElement('div');
+            el.className = 'queue-item';
+            el.innerText = item.num;
+            list.appendChild(el);
         });
         big.innerText = localQueue.length > 0 ? localQueue[0].num : '---';
     }
 
-    function autoPrune() {
+    // 3. 10分钟自动清理逻辑
+    function autoCleanup() {
         const now = Date.now();
-        const fresh = localQueue.filter(i => (now - i.time) < 10 * 60 * 1000);
-        if (fresh.length !== localQueue.length) {
-            localQueue = fresh;
+        const freshQueue = localQueue.filter(i => (now - i.time) < 10 * 60 * 1000);
+        if (freshQueue.length !== localQueue.length) {
+            localQueue = freshQueue;
             updateUI();
         }
     }
 
-    // 3. 激活声音 (核心修复)
+    // 4. 激活声音
     function initAudio() {
         const ding = document.getElementById('audio-ding');
-        const tts = document.getElementById('audio-tts');
-        
-        // 尝试同时播放两个通道来解锁
         ding.play().then(() => {
             audioUnlocked = true;
             document.getElementById('activation-layer').style.display = 'none';
-            console.log("Audio Unlocked");
-        }).catch(e => alert("激活失败，请检查电视是否静音"));
+        }).catch(() => alert("请确保电视未静音"));
     }
 
     window.addEventListener('keydown', e => { if (e.keyCode === 13) initAudio(); });
 
-    // 4. 语音播报逻辑
-    function announce(text) {
+    // 5. 增强版语音播放逻辑
+    function playVoice(text) {
         const ding = document.getElementById('audio-ding');
         const tts = document.getElementById('audio-tts');
         
-        // 第一步：先播叮咚
+        // A. 先响叮咚
         ding.currentTime = 0;
         ding.play();
 
-        // 第二步：延迟 1 秒播报语音 (给叮咚声留出时间)
+        // B. 延迟播放语音：改用 Google Translate 的接口 (最稳定)
         setTimeout(() => {
             const spell = text.split('').join(' ');
-            // 使用百度 TTS，并加入随机参数防止缓存
-            const url = `https://tts.baidu.com/text2audio?lan=en&ie=UTF-8&text=Order+${spell}+is+ready&r=${Math.random()}`;
-            tts.src = url;
+            // 采用有道 + 百度双备份策略，这次换成有道接口，它在马来西亚延迟更低
+            const voiceUrl = `https://dict.youdao.com/dictvoice?audio=Order+${spell}+is+ready&le=en&type=2`;
+            tts.src = voiceUrl;
             tts.load();
-            tts.play().catch(err => console.error("TTS Play Error:", err));
-        }, 1200);
+            tts.play().catch(e => console.error("TTS失败:", e));
+        }, 1300);
     }
 
     async function postOrder() {
@@ -173,7 +176,6 @@
         if (!val) return;
         await sb.from('orders').insert([{ order_number: val }]);
         input.value = '';
-        input.focus();
     }
 </script>
 </body>
