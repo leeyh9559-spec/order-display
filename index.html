@@ -8,141 +8,85 @@
     <style>
         :root { --green: #004529; --yellow: #F7D08A; }
         body { background: var(--green); color: var(--yellow); font-family: sans-serif; margin: 0; padding: 0; overflow: hidden; }
-
-        /* 统一遮罩层 - 解决启动交互问题 */
-        #start-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 69, 41, 0.98); z-index: 100;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            cursor: pointer; text-align: center;
-        }
-
-        /* 电视端样式 (TV View) */
+        #start-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 69, 41, 0.98); z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; text-align: center; }
         #tv-view { display: none; height: 100vh; flex-direction: column; align-items: center; justify-content: center; }
-        .tv-title { font-size: 4vw; border-bottom: 5px double var(--yellow); padding-bottom: 10px; margin: 0; }
         .number-box { font-size: 30vw; font-weight: 900; line-height: 1; margin: 30px 0; text-shadow: 10px 10px 0px rgba(0,0,0,0.2); }
-        .status-text { position: fixed; bottom: 20px; font-size: 1.5vw; opacity: 0.4; }
-
-        /* 柜台端样式 (Counter View - 适配手机) */
         #counter-view { display: none; padding: 20px; height: 100vh; box-sizing: border-box; }
-        .counter-container { 
-            background: rgba(255,255,255,0.05); border: 2px solid var(--yellow); 
-            border-radius: 20px; padding: 30px 15px; max-width: 400px; margin: 20px auto; text-align: center;
-        }
-        .counter-input { 
-            width: 90%; font-size: 3rem; padding: 15px; background: none; 
-            border: 3px solid var(--yellow); color: white; border-radius: 15px; margin-bottom: 20px;
-        }
-        .counter-btn { 
-            width: 90%; font-size: 2rem; padding: 20px; background: var(--yellow); 
-            color: var(--green); border: none; border-radius: 15px; font-weight: bold;
-        }
-        #history { margin-top: 30px; font-size: 1.2rem; opacity: 0.6; }
+        .counter-container { background: rgba(255,255,255,0.05); border: 2px solid var(--yellow); border-radius: 20px; padding: 30px 15px; max-width: 400px; margin: 20px auto; text-align: center; }
+        .counter-input { width: 90%; font-size: 3rem; padding: 15px; background: none; border: 3px solid var(--yellow); color: white; border-radius: 15px; margin-bottom: 20px; }
+        .counter-btn { width: 90%; font-size: 2rem; padding: 20px; background: var(--yellow); color: var(--green); border: none; border-radius: 15px; font-weight: bold; }
     </style>
 </head>
 <body>
 
     <div id="start-overlay" onclick="activateSystem()">
-        <div style="font-size: 2.5rem; background: var(--yellow); color: var(--green); padding: 15px 40px; border-radius: 50px; font-weight: bold;">
-            点击或按遥控器OK
-        </div>
-        <p style="margin-top: 20px; font-size: 1.2rem;">开启深夜工坊叫号语音</p>
+        <div style="font-size: 2.5rem; background: var(--yellow); color: var(--green); padding: 15px 40px; border-radius: 50px; font-weight: bold;">点击激活</div>
+        <p style="margin-top: 20px;">解锁深夜工坊叫号语音</p>
     </div>
 
     <div id="tv-view">
-        <h1 class="tv-title">MIDNIGHT WORKSHOP 深夜工坊</h1>
-        <div style="font-size: 4vw; margin-top: 40px; letter-spacing: 5px;">NOW SERVING / 请取餐</div>
+        <h1 style="font-size: 4vw; border-bottom: 5px double var(--yellow); padding-bottom: 10px;">MIDNIGHT WORKSHOP</h1>
         <div id="display-num" class="number-box">---</div>
-        <div class="status-text">● 实时连接就绪 | 语音系统已监控</div>
     </div>
 
     <div id="counter-view">
         <div class="counter-container">
-            <h2 style="margin-top: 0;">深夜工坊柜台</h2>
-            <input type="text" id="orderInput" class="counter-input" placeholder="单号" inputmode="text" autofocus>
+            <h2>深夜工坊柜台</h2>
+            <input type="text" id="orderInput" class="counter-input" placeholder="单号" autofocus>
             <button class="counter-btn" onclick="sendOrder()">立即叫号</button>
-            <div id="history">等待输入...</div>
         </div>
     </div>
 
+    <audio id="tts-player" style="display:none;"></audio>
+
 <script>
-    // Supabase 配置
     const client = supabase.createClient('https://enswbpmkycasjnqfqwli.supabase.co', 'sb_publishable_5Do4Ho_qHom0i85Eata37w_ikebjM57');
-    
     const urlParams = new URLSearchParams(window.location.search);
     const isTV = urlParams.get('view') === 'tv';
     let isReady = false;
 
-    // 初始化页面模式
     if (isTV) {
         document.getElementById('tv-view').style.display = 'flex';
-        initTV();
+        client.channel('public:orders').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders' }, p => {
+            const num = p.new.order_number;
+            document.getElementById('display-num').innerText = num;
+            if (isReady) playVoice(num);
+        }).subscribe();
     } else {
         document.getElementById('start-overlay').style.display = 'none';
         document.getElementById('counter-view').style.display = 'block';
     }
 
-    // 1. 激活系统（解锁声音限制）
     function activateSystem() {
         if (isReady) return;
         isReady = true;
         document.getElementById('start-overlay').style.display = 'none';
-        
-        // 播报一次确认声音
-        playVoice("System Ready");
+        // 激活音频通道
+        const player = document.getElementById('tts-player');
+        player.src = "https://dict.youdao.com/dictvoice?audio=ok&le=en";
+        player.play();
     }
 
-    // 监听遥控器按键 (Enter/OK 键)
-    window.addEventListener('keydown', function(e) {
-        if (e.keyCode === 13 || e.key === 'Enter') activateSystem();
-    });
+    window.addEventListener('keydown', e => { if (e.keyCode === 13 || e.key === 'Enter') activateSystem(); });
 
-    // 2. TV端逻辑：实时监听
-    function initTV() {
-        client.channel('public:orders').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders' }, payload => {
-            const num = payload.new.order_number;
-            document.getElementById('display-num').innerText = num;
-            if (isReady) playVoice(num);
-        }).subscribe();
-    }
-
-    // 3. 柜台端逻辑：发送单号
     async function sendOrder() {
         const input = document.getElementById('orderInput');
         const num = input.value.trim().toUpperCase();
         if (!num) return;
-
-        const hist = document.getElementById('history');
-        hist.innerText = "正在呼叫...";
-
-        const { error } = await client.from('orders').insert([{ order_number: num }]);
-        if (error) {
-            hist.innerText = "失败: " + error.message;
-        } else {
-            hist.innerText = "上次叫号: " + num;
-            input.value = '';
-            input.focus();
-        }
+        await client.from('orders').insert([{ order_number: num }]);
+        input.value = '';
     }
 
-    // 4. 核心：语音播报逻辑 (在线接口，最稳定)
     function playVoice(text) {
         try {
-            // 格式化 A101 为 A 1 0 1，方便念得清楚
             const formatted = text.split('').join(' ');
-            const voiceUrl = `https://dict.youdao.com/dictvoice?audio=Order+${formatted}+is+ready&le=en`;
-            
-            const audio = new Audio(voiceUrl);
-            audio.play().catch(e => console.log("播放被拦截", e));
-        } catch (err) {
-            console.error("语音错误", err);
-        }
+            const voiceUrl = `https://tts.baidu.com/text2audio?lan=en&pnt=3&ie=UTF-8&text=Order+${formatted}+is+ready`;
+            const player = document.getElementById('tts-player');
+            player.src = voiceUrl;
+            player.load();
+            player.play();
+        } catch (e) { console.error(e); }
     }
-
-    // 手机端监听回车
-    document.getElementById('orderInput')?.addEventListener("keypress", e => {
-        if (e.key === "Enter") sendOrder();
-    });
 </script>
 </body>
 </html>
