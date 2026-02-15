@@ -9,176 +9,166 @@
         :root { --green: #004529; --yellow: #F7D08A; }
         body { background: var(--green); color: var(--yellow); font-family: sans-serif; margin: 0; overflow: hidden; }
 
-        /* 启动激活层 */
-        #activation-overlay {
+        /* 强力启动层：必须点击才能进入 */
+        #activation-layer {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: var(--green); z-index: 999;
+            background: var(--green); z-index: 1000;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             cursor: pointer;
         }
-        .btn-start { font-size: 3rem; padding: 20px 60px; background: var(--yellow); color: var(--green); border-radius: 50px; font-weight: bold; border:none; }
+        .start-btn { font-size: 3rem; padding: 25px 70px; background: var(--yellow); color: var(--green); border-radius: 60px; font-weight: bold; border:none; box-shadow: 0 10px 20px rgba(0,0,0,0.3); }
 
-        /* TV 界面布局 */
+        /* TV 布局 */
         #tv-view { display: none; height: 100vh; flex-direction: column; padding: 20px; box-sizing: border-box; }
-        .header { font-size: 3vw; border-bottom: 5px double var(--yellow); padding: 10px 0; text-align: center; margin-bottom: 20px; }
-        .main-content { display: flex; flex: 1; gap: 20px; overflow: hidden; }
+        .header { font-size: 3.5vw; border-bottom: 6px double var(--yellow); padding: 10px 0; text-align: center; margin-bottom: 20px; font-weight: bold; }
+        .main-box { display: flex; flex: 1; gap: 25px; overflow: hidden; }
         
-        /* 左侧：大号显示 */
-        .big-display { flex: 2; border: 3px solid var(--yellow); border-radius: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; }
-        .big-num { font-size: 25vw; font-weight: 900; line-height: 1; }
+        /* 大号显示 */
+        .big-call { flex: 2; border: 4px solid var(--yellow); border-radius: 25px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(0,0,0,0.1); }
+        .num-large { font-size: 28vw; font-weight: 900; line-height: 1; margin: 0; }
         
-        /* 右侧：队列列表 */
-        .side-list { flex: 1; border: 3px solid var(--yellow); border-radius: 20px; display: flex; flex-direction: column; background: rgba(255,255,255,0.05); }
-        .list-title { background: var(--yellow); color: var(--green); font-size: 2vw; padding: 10px; text-align: center; font-weight: bold; }
-        #queue-items { list-style: none; padding: 0; margin: 0; flex: 1; display: flex; flex-direction: column; }
-        .item { font-size: 4vw; padding: 15px; border-bottom: 1px solid rgba(247,208,138,0.2); text-align: center; font-weight: bold; animation: fadeIn 0.5s; }
+        /* 队列列表 */
+        .queue-box { flex: 1; border: 4px solid var(--yellow); border-radius: 25px; display: flex; flex-direction: column; background: rgba(255,255,255,0.05); }
+        .queue-head { background: var(--yellow); color: var(--green); font-size: 2.2vw; padding: 12px; text-align: center; font-weight: bold; }
+        #list-container { list-style: none; padding: 0; margin: 0; flex: 1; display: flex; flex-direction: column; }
+        .queue-item { font-size: 4.5vw; padding: 12px; border-bottom: 1px solid rgba(247,208,138,0.2); text-align: center; font-weight: bold; }
 
-        @keyframes fadeIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
-
-        /* 柜台端样式 */
-        #counter-view { display: none; padding: 40px; text-align: center; }
-        input { font-size: 3rem; padding: 15px; width: 80%; border: 3px solid var(--yellow); background: none; color: white; border-radius: 15px; text-align: center; margin-bottom: 20px; }
-        button { font-size: 2.5rem; padding: 20px 60px; background: var(--yellow); color: var(--green); border: none; border-radius: 15px; font-weight: bold; }
+        /* 柜台样式 */
+        #counter-view { display: none; padding: 50px; text-align: center; }
+        .c-input { font-size: 3.5rem; padding: 20px; width: 85%; border: 4px solid var(--yellow); background: none; color: white; border-radius: 20px; text-align: center; margin-bottom: 30px; }
+        .c-btn { font-size: 2.5rem; padding: 20px 80px; background: var(--yellow); color: var(--green); border: none; border-radius: 20px; font-weight: bold; }
     </style>
 </head>
 <body>
 
-    <div id="activation-overlay" onclick="startSystem()">
-        <button class="btn-start">点击开启系统</button>
-        <p style="margin-top: 20px; font-size: 1.5rem;">或按遥控器 OK 键</p>
+    <div id="activation-layer" onclick="initAudio()">
+        <button class="start-btn">激活叫号系统</button>
+        <p style="margin-top: 30px; font-size: 1.8rem;">(深夜工坊 · 激活后即开启语音)</p>
     </div>
 
     <div id="tv-view">
         <div class="header">MIDNIGHT WORKSHOP 深夜工坊</div>
-        <div class="main-content">
-            <div class="big-display">
-                <div style="font-size: 2vw; opacity: 0.7;">NOW SERVING / 请取餐</div>
-                <div id="current-num" class="big-num">---</div>
+        <div class="main-box">
+            <div class="big-call">
+                <div style="font-size: 2.5vw; opacity: 0.8;">PLEASE COLLECT / 请取餐</div>
+                <div id="big-num" class="num-large">---</div>
             </div>
-            <div class="side-list">
-                <div class="list-title">PICKUP LIST / 取餐列表</div>
-                <div id="queue-items"></div>
+            <div class="queue-box">
+                <div class="queue-head">PICKUP LIST / 取餐列表</div>
+                <div id="list-container"></div>
             </div>
         </div>
     </div>
 
     <div id="counter-view">
-        <h1 style="font-size: 3rem;">柜台控制台</h1>
-        <input type="text" id="orderInput" placeholder="输入单号" autofocus>
-        <br>
-        <button onclick="postOrder()">叫号</button>
+        <div style="background:rgba(255,255,255,0.05); padding:40px; border-radius:30px; border:2px solid var(--yellow); max-width:450px; margin:0 auto;">
+            <h1 style="margin-top:0;">柜台控制</h1>
+            <input type="text" id="orderInput" class="c-input" placeholder="单号" autofocus>
+            <br>
+            <button class="c-btn" onclick="postOrder()">叫号</button>
+        </div>
     </div>
 
-    <audio id="audio-player" style="display:none;"></audio>
+    <audio id="tts-audio" style="display:none;"></audio>
 
 <script>
-    const CONFIG = {
-        url: 'https://enswbpmkycasjnqfqwli.supabase.co',
-        key: 'sb_publishable_5Do4Ho_qHom0i85Eata37w_ikebjM57'
-    };
-    const supabaseClient = supabase.createClient(CONFIG.url, CONFIG.key);
+    const SB_URL = 'https://enswbpmkycasjnqfqwli.supabase.co';
+    const SB_KEY = 'sb_publishable_5Do4Ho_qHom0i85Eata37w_ikebjM57';
+    const sb = supabase.createClient(SB_URL, SB_KEY);
     
-    const urlParams = new URLSearchParams(window.location.search);
-    const mode = urlParams.get('view');
-    let isUnlocked = false;
-    let localQueue = []; // 存储格式：{ num: 'A1', time: Date.now() }
+    const mode = new URLSearchParams(window.location.search).get('view');
+    let localQueue = []; // {num, time}
+    let audioUnlocked = false;
 
-    // 初始化页面
+    // 页面初始化
     if (mode === 'tv') {
         document.getElementById('tv-view').style.display = 'flex';
-        loadHistory(); // 加载历史数据
-        startListening(); // 开启实时监听
-        setInterval(cleanOldOrders, 1000); // 每一秒检查一次是否到期
+        fetchRecent();
+        listenRealtime();
+        setInterval(autoClear, 1000); // 每秒检查一次是否过期
     } else {
-        document.getElementById('activation-overlay').style.display = 'none';
+        document.getElementById('activation-layer').style.display = 'none';
         document.getElementById('counter-view').style.display = 'block';
     }
 
-    // 1. 加载最近 10 条记录
-    async function loadHistory() {
-        const { data, error } = await supabaseClient
-            .from('orders')
-            .select('order_number, created_at')
-            .order('created_at', { ascending: false })
-            .limit(10);
-        
+    // 1. 获取最近 10 分钟数据
+    async function fetchRecent() {
+        const tenMinsAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+        const { data } = await sb.from('orders').select('*').gt('created_at', tenMinsAgo).order('created_at', {ascending: false}).limit(10);
         if (data) {
-            const tenMinutesAgo = Date.now() - (10 * 60 * 1000);
-            localQueue = data
-                .filter(item => new Date(item.created_at).getTime() > tenMinutesAgo)
-                .map(item => ({ 
-                    num: item.order_number, 
-                    time: new Date(item.created_at).getTime() 
-                }));
-            updateUI();
+            localQueue = data.map(d => ({ num: d.order_number, time: new Date(d.created_at).getTime() }));
+            refreshUI();
         }
     }
 
-    // 2. 实时监听新订单
-    function startListening() {
-        supabaseClient.channel('any').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders' }, payload => {
-            const newNum = payload.new.order_number;
-            // 加入队列
-            localQueue.unshift({ num: newNum, time: Date.now() });
+    // 2. 实时监听
+    function listenRealtime() {
+        sb.channel('db-changes').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders' }, payload => {
+            const n = payload.new.order_number;
+            localQueue.unshift({ num: n, time: Date.now() });
             if (localQueue.length > 10) localQueue.pop();
-            
-            updateUI();
-            if (isUnlocked) playVoice(newNum);
+            refreshUI();
+            if (audioUnlocked) announce(n);
         }).subscribe();
     }
 
-    // 3. 更新界面
-    function updateUI() {
-        const list = document.getElementById('queue-items');
-        const bigDisplay = document.getElementById('current-num');
-        
-        list.innerHTML = '';
+    // 3. 刷新界面
+    function refreshUI() {
+        const container = document.getElementById('list-container');
+        const big = document.getElementById('big-num');
+        container.innerHTML = '';
         localQueue.forEach(item => {
-            const el = document.createElement('div');
-            el.className = 'item';
-            el.innerText = item.num;
-            list.appendChild(el);
+            const div = document.createElement('div');
+            div.className = 'queue-item';
+            div.innerText = item.num;
+            container.appendChild(div);
         });
-
-        bigDisplay.innerText = localQueue.length > 0 ? localQueue[0].num : '---';
+        big.innerText = localQueue.length > 0 ? localQueue[0].num : '---';
     }
 
-    // 4. 清理超过 10 分钟的号码
-    function cleanOldOrders() {
+    // 4. 自动清理 (10分钟)
+    function autoClear() {
         const now = Date.now();
-        const expireTime = 10 * 60 * 1000;
-        const filtered = localQueue.filter(item => (now - item.time) < expireTime);
-        
-        if (filtered.length !== localQueue.length) {
-            localQueue = filtered;
-            updateUI();
+        const fresh = localQueue.filter(i => (now - i.time) < 10 * 60 * 1000);
+        if (fresh.length !== localQueue.length) {
+            localQueue = fresh;
+            refreshUI();
         }
     }
 
-    // 5. 激活声音
-    function startSystem() {
-        isUnlocked = true;
-        document.getElementById('activation-overlay').style.display = 'none';
-        playVoice("ok"); // 测试音
+    // 5. 核心：初始化音频 (解锁)
+    function initAudio() {
+        const player = document.getElementById('tts-audio');
+        // 播放一个极短的“叮”声或静音来激活通道
+        player.src = "https://dict.youdao.com/dictvoice?audio=ok&le=en";
+        player.play().then(() => {
+            audioUnlocked = true;
+            document.getElementById('activation-layer').style.display = 'none';
+            console.log("Audio Channel Unlocked");
+        }).catch(e => alert("激活失败，请再试一次"));
     }
 
-    window.addEventListener('keydown', e => { if (e.keyCode === 13) startSystem(); });
+    // 监听遥控器 Enter
+    window.addEventListener('keydown', e => { if (e.keyCode === 13) initAudio(); });
 
-    // 6. 语音播放 (百度 TTS 接口，最兼容电视)
-    function playVoice(text) {
-        const formatted = text.split('').join(' ');
-        const url = `https://tts.baidu.com/text2audio?lan=en&ie=UTF-8&text=Order+${formatted}+is+ready`;
-        const player = document.getElementById('audio-player');
+    // 6. 核心：语音播放
+    function announce(text) {
+        const player = document.getElementById('tts-audio');
+        // A101 -> A 1 0 1
+        const spell = text.split('').join(' ');
+        const url = `https://dict.youdao.com/dictvoice?audio=Order+${spell}+is+ready&le=en`;
+        
         player.src = url;
-        player.play().catch(e => console.log("Audio Error:", e));
+        player.load();
+        player.play().catch(err => console.error("Play error:", err));
     }
 
-    // 柜台端发送
+    // 柜台端逻辑
     async function postOrder() {
         const input = document.getElementById('orderInput');
-        const num = input.value.trim().toUpperCase();
-        if (!num) return;
-        await supabaseClient.from('orders').insert([{ order_number: num }]);
+        const val = input.value.trim().toUpperCase();
+        if (!val) return;
+        await sb.from('orders').insert([{ order_number: val }]);
         input.value = '';
         input.focus();
     }
